@@ -59,9 +59,9 @@ export default function DashboardFinanceiro() {
       };
 
       if (editando) {
-        await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?id=eq.${editando}`, {
+        await fetch(`/api/transacoes/${editando}`, {
           method: 'PATCH',
-          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(dados)
         });
       } else {
@@ -84,9 +84,8 @@ export default function DashboardFinanceiro() {
   const deletarTransacao = async (id) => {
     if (!confirm('Tem certeza?')) return;
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?id=eq.${id}`, {
-        method: 'DELETE',
-        headers: { 'apikey': SUPABASE_KEY }
+      await fetch(`/api/transacoes/${id}`, {
+        method: 'DELETE'
       });
       carregarDados();
     } catch (erro) {
@@ -96,9 +95,9 @@ export default function DashboardFinanceiro() {
 
   const atualizarStatusConta = async (id, novoStatus) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar?id=eq.${id}`, {
+      await fetch(`/api/contas/${id}`, {
         method: 'PATCH',
-        headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: novoStatus, data_pagamento: novoStatus === 'pago' ? new Date().toISOString().split('T')[0] : null })
       });
       carregarDados();
