@@ -27,12 +27,8 @@ export default function DashboardFinanceiro() {
       setLoading(true);
       
       const [resTransacoes, resContas] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?select=*`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }
-        }),
-        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar?select=*`, {
-          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' }
-        })
+        fetch('/api/transacoes'),
+        fetch('/api/contas')
       ]);
 
       const transacoesData = await resTransacoes.json();
@@ -69,9 +65,9 @@ export default function DashboardFinanceiro() {
           body: JSON.stringify(dados)
         });
       } else {
-        await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes`, {
+        await fetch('/api/transacoes', {
           method: 'POST',
-          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(dados)
         });
       }
