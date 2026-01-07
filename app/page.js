@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Edit2, Trash2, Plus, Save, X } from 'lucide-react';
+import { Edit2, Trash2, Save, X } from 'lucide-react';
 
 const SUPABASE_URL = 'https://mzqqxvbzejumwqvhwgvs.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im16cXF4dmJ6ZWp1bXdxdmh3Z3ZzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjE3NjkwNjIsImV4cCI6MjA3NzM0NTA2Mn0.phJQeAq2Sk77AdLlQ--5Gm_QD2gw9gY6E-9wv0uMWHA';
@@ -27,8 +27,12 @@ export default function DashboardFinanceiro() {
       setLoading(true);
       
       const [resTransacoes, resContas] = await Promise.all([
-        fetch('/api/transacoes'),
-        fetch('/api/contas')
+        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes`, {
+          headers: { 'apikey': SUPABASE_KEY }
+        }),
+        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar`, {
+          headers: { 'apikey': SUPABASE_KEY }
+        })
       ]);
 
       const transacoesData = await resTransacoes.json();
@@ -37,7 +41,7 @@ export default function DashboardFinanceiro() {
       setTransacoes(Array.isArray(transacoesData) ? transacoesData : []);
       setContas(Array.isArray(contasData) ? contasData : []);
     } catch (erro) {
-      console.error('Erro ao carregar dados:', erro);
+      console.error('Erro ao carregar:', erro);
     } finally {
       setLoading(false);
     }
@@ -45,7 +49,7 @@ export default function DashboardFinanceiro() {
 
   const salvarTransacao = async () => {
     if (!novaTransacao.data || !novaTransacao.categoria || !novaTransacao.valor) {
-      alert('Preencha todos os campos obrigatórios');
+      alert('Preencha todos os campos');
       return;
     }
 
@@ -59,50 +63,50 @@ export default function DashboardFinanceiro() {
       };
 
       if (editando) {
-        await fetch(`/api/transacoes/${editando}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?id=eq.${editando}`, {
           method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify(dados)
         });
       } else {
-        await fetch('/api/transacoes', {
+        await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify(dados)
         });
       }
 
       setNovaTransacao({ data: '', tipo: 'despesa', categoria: '', valor: '', descricao: '' });
       setEditando(null);
-      carregarDados();
+      await carregarDados();
     } catch (erro) {
-      console.error('Erro ao salvar:', erro);
-      alert('Erro ao salvar transação');
+      console.error('Erro:', erro);
     }
   };
 
   const deletarTransacao = async (id) => {
-    if (!confirm('Tem certeza?')) return;
+    if (!confirm('Deletar?')) return;
     try {
-      await fetch(`/api/transacoes/${id}`, {
-        method: 'DELETE'
+      await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?id=eq.${id}`, {
+        method: 'DELETE',
+        headers: { 'apikey': SUPABASE_KEY }
       });
-      carregarDados();
+      await carregarDados();
     } catch (erro) {
-      console.error('Erro ao deletar:', erro);
+      console.error('Erro:', erro);
     }
   };
 
   const atualizarStatusConta = async (id, novoStatus) => {
     try {
-      await fetch(`/api/contas/${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar?id=eq.${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: novoStatus, data_pagamento: novoStatus === 'pago' ? new Date().toISOString().split('T')[0] : null })
+        headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: novoStatus })
       });
-      carregarDados();
+      await carregarDados();
     } catch (erro) {
-      console.error('Erro ao atualizar:', erro);
+      console.error('Erro:', erro);
     }
   };
 
@@ -112,7 +116,7 @@ export default function DashboardFinanceiro() {
   const saldoTotal = transacoes.reduce((sum, t) => sum + (t.tipo === 'ganho' ? t.valor : -t.valor), 0);
 
   const contasAtivas = contas.filter(c => c.status !== 'pago');
-  const totalContasAtivas = contasAtivas.reduce((sum, c) => sum + (c.valor_pago ? c.valor_esperado - c.valor_pago : c.valor_esperado), 0);
+  const totalContasAtivas = contasAtivas.reduce((sum, c) => sum + (c.valor_esperado || 0), 0);
 
   const dadosPizza = transacoesMes
     .filter(t => t.tipo === 'despesa')
@@ -132,7 +136,7 @@ export default function DashboardFinanceiro() {
     }, {})
   ).map(([_, v]) => v).sort((a, b) => a.data.localeCompare(b.data));
 
-  if (loading) return <div className="flex items-center justify-center h-screen text-2xl">Carregando...</div>;
+  if (loading) return <div className="flex items-center justify-center h-screen text-xl">Carregando...</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 to-gray-800 text-white p-8">
@@ -177,7 +181,7 @@ export default function DashboardFinanceiro() {
                     <Tooltip formatter={(value) => `R$ ${value.toFixed(2)}`} />
                   </PieChart>
                 </ResponsiveContainer>
-              ) : <p className="text-gray-400">Sem dados para este mês</p>}
+              ) : <p className="text-gray-400">Sem dados</p>}
             </div>
 
             <div className="bg-gray-800 p-6 rounded-lg">
@@ -194,7 +198,7 @@ export default function DashboardFinanceiro() {
                     <Line type="monotone" dataKey="despesas" stroke="#EF4444" name="Despesas" />
                   </LineChart>
                 </ResponsiveContainer>
-              ) : <p className="text-gray-400">Sem dados para este mês</p>}
+              ) : <p className="text-gray-400">Sem dados</p>}
             </div>
           </div>
         )}
@@ -219,8 +223,8 @@ export default function DashboardFinanceiro() {
                 <input type="text" placeholder="Descrição" value={novaTransacao.descricao} onChange={(e) => setNovaTransacao({ ...novaTransacao, descricao: e.target.value })} className="bg-gray-700 text-white px-3 py-2 rounded col-span-2" />
               </div>
               <div className="flex gap-2">
-                <button onClick={salvarTransacao} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded flex items-center gap-2"><Save size={18} /> Salvar</button>
-                {editando && <button onClick={() => { setEditando(null); setNovaTransacao({ data: '', tipo: 'despesa', categoria: '', valor: '', descricao: '' }); }} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded flex items-center gap-2"><X size={18} /> Cancelar</button>}
+                <button onClick={salvarTransacao} className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded"><Save size={18} /> Salvar</button>
+                {editando && <button onClick={() => { setEditando(null); setNovaTransacao({ data: '', tipo: 'despesa', categoria: '', valor: '', descricao: '' }); }} className="bg-gray-700 hover:bg-gray-600 px-4 py-2 rounded"><X size={18} /> Cancelar</button>}
               </div>
             </div>
 
@@ -239,14 +243,14 @@ export default function DashboardFinanceiro() {
                 <tbody>
                   {transacoesMes.sort((a, b) => b.data.localeCompare(a.data)).map(t => (
                     <tr key={t.id} className="border-t border-gray-700 hover:bg-gray-700">
-                      <td className="p-3">{new Date(t.data).toLocaleDateString('pt-BR')}</td>
+                      <td className="p-3">{new Date(t.data + 'T00:00:00').toLocaleDateString('pt-BR')}</td>
                       <td className="p-3"><span className={`px-2 py-1 rounded text-xs ${t.tipo === 'ganho' ? 'bg-green-600' : 'bg-red-600'}`}>{t.tipo}</span></td>
                       <td className="p-3">{t.categoria}</td>
                       <td className="p-3 text-right">R$ {t.valor.toFixed(2)}</td>
-                      <td className="p-3">{t.descricao}</td>
+                      <td className="p-3">{t.descricao || '-'}</td>
                       <td className="p-3 text-center flex gap-2 justify-center">
-                        <button onClick={() => { setEditando(t.id); setNovaTransacao(t); }} className="text-blue-400 hover:text-blue-300"><Edit2 size={16} /></button>
-                        <button onClick={() => deletarTransacao(t.id)} className="text-red-400 hover:text-red-300"><Trash2 size={16} /></button>
+                        <button onClick={() => { setEditando(t.id); setNovaTransacao(t); }} className="text-blue-400"><Edit2 size={16} /></button>
+                        <button onClick={() => deletarTransacao(t.id)} className="text-red-400"><Trash2 size={16} /></button>
                       </td>
                     </tr>
                   ))}
@@ -264,7 +268,6 @@ export default function DashboardFinanceiro() {
                   <th className="p-3 text-left">Conta</th>
                   <th className="p-3 text-left">Categoria</th>
                   <th className="p-3 text-right">Valor</th>
-                  <th className="p-3 text-right">Pago</th>
                   <th className="p-3 text-left">Vencimento</th>
                   <th className="p-3 text-center">Status</th>
                   <th className="p-3 text-center">Ação</th>
@@ -274,13 +277,12 @@ export default function DashboardFinanceiro() {
                 {contas.sort((a, b) => a.data_vencimento - b.data_vencimento).map(c => (
                   <tr key={c.id} className="border-t border-gray-700 hover:bg-gray-700">
                     <td className="p-3">{c.nome_conta}</td>
-                    <td className="p-3 capitalize">{c.categoria.replace('_', ' ')}</td>
+                    <td className="p-3">{c.categoria.replace('_', ' ')}</td>
                     <td className="p-3 text-right">R$ {c.valor_esperado.toFixed(2)}</td>
-                    <td className="p-3 text-right">{c.valor_pago ? `R$ ${c.valor_pago.toFixed(2)}` : '-'}</td>
                     <td className="p-3">{c.data_vencimento}º dia</td>
                     <td className="p-3 text-center"><span className={`px-2 py-1 rounded text-xs ${c.status === 'pago' ? 'bg-green-600' : c.status === 'atrasado' ? 'bg-red-600' : 'bg-yellow-600'}`}>{c.status}</span></td>
                     <td className="p-3 text-center">
-                      {c.status !== 'pago' && <button onClick={() => atualizarStatusConta(c.id, 'pago')} className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs">Marcar Pago</button>}
+                      {c.status !== 'pago' && <button onClick={() => atualizarStatusConta(c.id, 'pago')} className="bg-green-600 hover:bg-green-700 px-3 py-1 rounded text-xs">Pago</button>}
                     </td>
                   </tr>
                 ))}
