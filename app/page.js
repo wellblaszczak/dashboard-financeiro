@@ -27,11 +27,11 @@ export default function DashboardFinanceiro() {
       setLoading(true);
       
       const [resTransacoes, resContas] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes`, {
-          headers: { 'apikey': SUPABASE_KEY }
+        fetch(`${SUPABASE_URL}/rest/v1/transacoes?apikey=${SUPABASE_KEY}`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' }
         }),
-        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar`, {
-          headers: { 'apikey': SUPABASE_KEY }
+        fetch(`${SUPABASE_URL}/rest/v1/contas_pagar?apikey=${SUPABASE_KEY}`, {
+          headers: { 'apikey': SUPABASE_KEY, 'Accept': 'application/json' }
         })
       ]);
 
