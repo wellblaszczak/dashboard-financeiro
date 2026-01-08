@@ -27,10 +27,10 @@ export default function DashboardFinanceiro() {
       setLoading(true);
       
       const [resTransacoes, resContas] = await Promise.all([
-        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes`, {
+        fetch(`${SUPABASE_URL}/rest/v1/transacoes?schema=financas_dashboard`, {
           headers: { 'apikey': SUPABASE_KEY }
         }),
-        fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar`, {
+        fetch(`${SUPABASE_URL}/rest/v1/contas_pagar?schema=financas_dashboard`, {
           headers: { 'apikey': SUPABASE_KEY }
         })
       ]);
@@ -63,13 +63,13 @@ export default function DashboardFinanceiro() {
       };
 
       if (editando) {
-        await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?id=eq.${editando}`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/transacoes?schema=financas_dashboard&id=eq.${editando}`, {
           method: 'PATCH',
           headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify(dados)
         });
       } else {
-        await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes`, {
+        await fetch(`${SUPABASE_URL}/rest/v1/transacoes?schema=financas_dashboard`, {
           method: 'POST',
           headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
           body: JSON.stringify(dados)
@@ -87,7 +87,7 @@ export default function DashboardFinanceiro() {
   const deletarTransacao = async (id) => {
     if (!confirm('Deletar?')) return;
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.transacoes?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/transacoes?schema=financas_dashboard&id=eq.${id}`, {
         method: 'DELETE',
         headers: { 'apikey': SUPABASE_KEY }
       });
@@ -99,7 +99,7 @@ export default function DashboardFinanceiro() {
 
   const atualizarStatusConta = async (id, novoStatus) => {
     try {
-      await fetch(`${SUPABASE_URL}/rest/v1/financas_dashboard.contas_pagar?id=eq.${id}`, {
+      await fetch(`${SUPABASE_URL}/rest/v1/contas_pagar?schema=financas_dashboard&id=eq.${id}`, {
         method: 'PATCH',
         headers: { 'apikey': SUPABASE_KEY, 'Content-Type': 'application/json' },
         body: JSON.stringify({ status: novoStatus })
